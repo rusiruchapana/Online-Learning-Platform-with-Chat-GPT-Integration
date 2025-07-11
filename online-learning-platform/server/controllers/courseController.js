@@ -104,7 +104,7 @@ const deleteCourse = async (req, res) => {
       return res.status(401).json({ message: 'Not authorized' });
     }
 
-    await course.remove();
+    await course.deleteOne();  // Alternative
     res.json({ message: 'Course removed' });
   } catch (err) {
     console.error(err.message);
