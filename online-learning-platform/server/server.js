@@ -1,43 +1,57 @@
 const express = require('express');
 const connectDB = require('./config/db');
-const cors = require('cors');
 const dotenv = require('dotenv');
+const cors = require('cors'); // Add cors package
 
-// Load env vars
-dotenv.config();
+// Load env vars FIRST
+dotenv.config({ path: './.env' });
 
 // Connect to database
 connectDB();
 
-// Route files
+const app = express();
+
+// Enhanced CORS configuration
+app.use(cors({
+  origin: 'http://localhost:3000', // Your React frontend URL
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
+// Body parser middleware - extended to handle URL-encoded data too
+app.use(express.json());
+app.use(express.urlencoded({ extended: true })); // Add this line
+
+// Route imports
 const authRoutes = require('./routes/authRoutes');
 const courseRoutes = require('./routes/courseRoutes');
 const chatRoutes = require('./routes/chatRoutes');
 
-const app = express();
-
-// Body parser
-app.use(express.json());
-
-// Enable CORS
-app.use(cors());
-
-// Mount routers
+// Mount routes with proper prefixes
 app.use('/api/auth', authRoutes);
 app.use('/api/courses', courseRoutes);
 app.use('/api/chat', chatRoutes);
 
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'OK' });
+});
+
+// Enhanced error handling middleware
+app.use((error, req, res, next) => {
+  console.error('Server Error:', error);
+  res.status(error.status || 500).json({
+    error: {
+      message: error.message || 'Internal Server Error',
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    }
+  });
+});
+
 const PORT = process.env.PORT || 5000;
 
-const server = app.listen(
-  PORT,
-  console.log(PORT),
-  console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`)
-);
-
-// Handle unhandled promise rejections
-process.on('unhandledRejection', (err, promise) => {
-  console.log(`Error: ${err.message}`);
-  // Close server & exit process
-  server.close(() => process.exit(1));
+app.listen(PORT, () => {
+  console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
+  console.log(`Frontend URL: http://localhost:3000`);
 });
